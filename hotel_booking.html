@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Booking - Yatrivio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
+    <style>
+        .container {
+            max-width: 600px !important;
+            margin: 2rem auto !important;
+            padding: 2rem !important;
+        }
+        .container h2 {
+            color: rgba(255,255,255,0.92);
+            text-shadow: 0 0 25px rgba(167,139,250,0.4);
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-brand">✈️ Yatrivio</div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="results.html" class="nav-link">Trip Results</a>
+            <a href="#" class="nav-link" onclick="logout()">Logout</a>
+        </div>
+    </div>
+</nav>
+    <div class="container">
+        <h2>🏨 Complete Your Hotel Booking</h2>
+
+        <form id="bookingForm">
+    <div style="background: rgba(16,20,50,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 1.5rem; border-radius: 20px; margin-bottom: 1.5rem; border: 1px solid rgba(102,126,234,0.28); box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.08); position: relative; overflow: hidden;">
+    <div style="position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,0.6),transparent);"></div>
+    <input type="text" id="hotelName" readonly placeholder="Hotel Name">
+
+    <label style="margin-top: 1rem; font-weight: 600; display: block; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">📅 Check-in Date</label>
+    <input type="date" id="checkin" required>
+
+    <label style="margin-top: 1rem; font-weight: 600; display: block; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">📅 Check-out Date</label>
+    <input type="date" id="checkout" required>
+
+    <label style="margin-top: 1rem; font-weight: 600; display: block; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">👥 Guests</label>
+    <select id="guests">
+        <option value="Couple">👫 Couple</option>
+        <option value="Family">👨‍👩‍👧‍👦 Family</option>
+        <option value="Friends">👬 Friends</option>
+    </select>
+
+    <label style="margin-top: 1rem; font-weight: 600; display: block; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">🛏️ Room Type</label>
+    <select id="roomType">
+        <option value="normal">Normal</option>
+        <option value="premium">Premium</option>
+        <option value="luxury">Luxury</option>
+    </select>
+
+    <div style="background: rgba(102,126,234,0.15); backdrop-filter: blur(12px); padding: 1.5rem; border-radius: 16px; margin-top: 1.5rem; text-align: center; border: 1px solid rgba(102,126,234,0.35); box-shadow: 0 0 20px rgba(102,126,234,0.2);">
+        <p id="nightlyRate" style="margin: 0 0 0.35rem; color: rgba(255,255,255,0.75); font-size: 0.9rem;"></p>
+        <p id="priceBreakdown" style="margin: 0.35rem 0 0; color: rgba(255,255,255,0.55); font-size: 0.8rem;"></p>
+        <h3 id="price" style="color: rgba(255,255,255,0.92); margin: 0; font-size: 1.5rem; text-shadow: 0 0 20px rgba(167,139,250,0.5);">Total Price: ₹0</h3>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="margin-top: 2rem;">✓ Confirm Booking</button>
+    </div>
+</form>
+
+    <script>
+        // Show selected hotel name
+    
+let selectedHotelDetails = null;
+try {
+    selectedHotelDetails = JSON.parse(localStorage.getItem("selectedHotelDetails") || "null");
+} catch {
+    selectedHotelDetails = null;
+}
+
+document.getElementById("hotelName").value =
+    selectedHotelDetails?.name || localStorage.getItem("selectedHotel") || "Hotel";
+
+const getApiUrl = (path) => {
+    const isLocalFrontendOnly =
+        window.location.protocol === "file:" ||
+        window.location.hostname === "" ||
+        ((window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") &&
+        window.location.port !== "3000" && window.location.port !== "5000");
+    const base = isLocalFrontendOnly ? "http://127.0.0.1:5000" : "";
+    return `${base}${path}`;
+};
+
+function getSavedTrip() {
+    try {
+        const savedTrip = localStorage.getItem("trip");
+        return savedTrip ? JSON.parse(savedTrip) : null;
+    } catch {
+        return null;
+    }
+}
+
+/* -------- DATE VALIDATION -------- */
+
+const today = new Date().toISOString().split("T")[0];
+
+const checkinInput = document.getElementById("checkin");
+const checkoutInput = document.getElementById("checkout");
+
+/* Set minimum date = today */
+checkinInput.min = today;
+checkoutInput.min = today;
+
+/* Default checkin = today */
+checkinInput.value = today;
+
+/* Checkout must be after checkin */
+checkinInput.addEventListener("change", () => {
+    checkoutInput.min = checkinInput.value;
+});
+
+/* Prevent back date selection */
+checkoutInput.addEventListener("change", () => {
+    if (checkoutInput.value <= checkinInput.value) {
+        alert("Checkout date must be after check-in date");
+        checkoutInput.value = "";
+    }
+});
+// Get trip data to determine currency
+const mapData = JSON.parse(localStorage.getItem("mapData") || "{}");
+const isInternational = mapData.is_international || false;
+
+
+const selectedHotelRate = Number(selectedHotelDetails?.price);
+const hasSelectedHotelRate = Number.isFinite(selectedHotelRate) && selectedHotelRate > 0;
+const bookingCurrency = selectedHotelDetails?.currency || "INR";
+
+const currencySymbols = {
+    INR: "₹",
+    USD: "$",
+    GBP: "£",
+    EUR: "€",
+    JPY: "¥",
+    AED: "د.إ",
+    SGD: "S$",
+    AUD: "A$",
+    CAD: "C$"
+};
+
+const bookingCurrencySymbol =
+    selectedHotelDetails?.symbol ||
+    currencySymbols[bookingCurrency] ||
+    bookingCurrency;
+// Legacy fallback values are retained for display compatibility; bookings use
+// the selected hotel's rate and the room multiplier below.
+const roomPrices = isInternational ? {
+    normal: 25,  // ~2000 INR / 83 ≈ 24 USD
+    premium: 42, // ~3500 INR / 83 ≈ 42 USD
+    luxury: 72   // ~6000 INR / 83 ≈ 72 USD
+} : {
+    normal: 2000,
+    premium: 3500,
+    luxury: 6000
+};
+
+const roomMultipliers = {
+    normal: 1,
+    premium: 1.5,
+    luxury: 2
+};
+
+function getNumberOfNights() {
+    const checkin = new Date(checkinInput.value);
+    const checkout = new Date(checkoutInput.value);
+    if (!checkinInput.value || !checkoutInput.value || Number.isNaN(checkin.getTime()) || Number.isNaN(checkout.getTime()) || checkout <= checkin) {
+        return 0;
+    }
+    return Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+}
+
+function formatBookingAmount(amount) {
+    return `${bookingCurrencySymbol}${Math.round(amount).toLocaleString("en-IN")}`;
+}
+
+function calculatePrice() {
+    const priceElement = document.getElementById("price");
+    const rateElement = document.getElementById("nightlyRate");
+    const breakdownElement = document.getElementById("priceBreakdown");
+    const roomType = document.getElementById("roomType").value;
+
+    if (!hasSelectedHotelRate) {
+        rateElement.textContent = "Hotel rate unavailable";
+        breakdownElement.textContent = "Return to the hotel list and select a hotel with a nightly rate.";
+        priceElement.textContent = "Total Price: —";
+        return 0;
+    }
+
+    const multiplier = roomMultipliers[roomType] || 1;
+    const nightlyRate = selectedHotelRate * multiplier;
+    const nights = getNumberOfNights();
+    rateElement.textContent = `Selected hotel rate: ${formatBookingAmount(selectedHotelRate)}/night`;
+
+    if (!nights) {
+        breakdownElement.textContent = `Choose valid dates. ${roomType} room: ${formatBookingAmount(nightlyRate)}/night.`;
+        priceElement.textContent = `Total Price: ${bookingCurrencySymbol}0`;
+        return 0;
+    }
+
+    const total = nights * nightlyRate;
+    priceElement.textContent = `Total Price: ${formatBookingAmount(total)}`;
+    breakdownElement.textContent = `${nights} night${nights === 1 ? "" : "s"} × ${formatBookingAmount(nightlyRate)}/night (${roomType} room)`;
+    return total;
+}
+
+// Auto update price
+["checkin", "checkout", "roomType"].forEach(id => {
+    document.getElementById(id).addEventListener("change", calculatePrice);
+});
+
+calculatePrice();
+
+// Submit booking
+document.getElementById("bookingForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const totalPrice = calculatePrice();
+    if (!hasSelectedHotelRate) {
+        alert("The selected hotel's nightly rate is missing. Please choose the hotel again from the results page.");
+        return;
+    }
+    if (totalPrice === 0) {
+        alert("Please select valid dates");
+        return;
+    }
+
+    const trip = getSavedTrip();
+    if (!trip || !trip.destination) {
+        alert("Trip details are missing. Please plan your trip again before booking a hotel.");
+        return;
+    }
+
+    const receipt = {
+        booking_id: Math.floor(Math.random() * 100000),
+        hotel: document.getElementById("hotelName").value,
+        room: document.getElementById("roomType").value,
+        guests: document.getElementById("guests").value,
+        checkin: document.getElementById("checkin").value,
+        checkout: document.getElementById("checkout").value,
+        total_price: totalPrice,
+        nightly_rate: selectedHotelRate,
+        nights: getNumberOfNights(),
+        currency: bookingCurrency,
+        currency_symbol: bookingCurrencySymbol,
+        status: "Confirmed"
+    };
+
+    const submitButton = e.currentTarget.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.textContent;
+    const travellers = Number.parseInt(trip.numbersOfPerson, 10);
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Confirming booking...";
+
+    fetch(getApiUrl("/api/save-booking"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            hotel_name: receipt.hotel,
+            destination: trip.destination,
+            travelers: Number.isFinite(travellers) && travellers > 0 ? travellers : 1,
+            days: receipt.nights,
+            room_type: receipt.room,
+            total_price: receipt.total_price
+        })
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Booking could not be saved.");
+        }
+    })
+    .then(() => {
+        localStorage.setItem("receipt", JSON.stringify(receipt));
+        window.location.href = "receipt.html";
+    })
+    .catch(error => {
+        console.error("Booking error:", error);
+        alert(error.message || "Booking could not be confirmed. Please try again.");
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+    });
+});
+
+    </script>
+    
+    <footer class="footer" style="margin-top: 4rem;">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Yatrivio</h4>
+                <p>Your ultimate travel companion for planning amazing trips.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html">Plan Trip</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <div class="social-links">
+                    <a href="#" class="social-link">FB</a>
+                    <a href="#" class="social-link">TW</a>
+                    <a href="#" class="social-link">IG</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Yatrivio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>

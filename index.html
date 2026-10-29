@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelMate - Discover Your Next Adventure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
+    <style>
+        /* === HERO ANIMATED BACKGROUND === */
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+            pointer-events: none;
+            animation: orbFloat 8s ease-in-out infinite;
+        }
+
+        .hero-bg-orb-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, #667eea, #764ba2);
+            top: -150px; left: -100px;
+            animation-delay: 0s;
+        }
+
+        .hero-bg-orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, #a78bfa, #3b1f7a);
+            bottom: -100px; right: -80px;
+            animation-delay: -4s;
+        }
+
+        .hero-bg-orb-3 {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, #38bdf8, #667eea);
+            top: 40%; left: 60%;
+            animation-delay: -2s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%       { transform: translate(30px, -30px) scale(1.05); }
+            66%       { transform: translate(-20px, 20px) scale(0.97); }
+        }
+
+        /* Hero glass mesh overlay */
+        .hero-glass-mesh {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 60%, rgba(102,126,234,0.15) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 30%, rgba(118,75,162,0.12) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Dark cinema vignette on hero */
+        .hero-vignette {
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(to bottom, rgba(13,17,23,0.45) 0%, rgba(13,17,23,0.1) 40%, rgba(13,17,23,0.65) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Loader dark override */
+        #loader {
+            background: linear-gradient(135deg, #0d1117 0%, #1a1040 100%);
+        }
+
+        /* ── Why TravelMate feature cards ── */
+        .features-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 5rem 2rem 3rem;
+        }
+
+        .features-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .features-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.4rem;
+            color: rgba(255,255,255,0.93);
+            margin-bottom: 0.6rem;
+            text-shadow: 0 0 30px rgba(102,126,234,0.4);
+        }
+
+        .features-header p {
+            color: rgba(255,255,255,0.45);
+            font-size: 1.05rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.8rem;
+        }
+
+        .feature-card {
+            position: relative;
+            background: rgba(20, 25, 52, 0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(102,126,234,0.22);
+            border-radius: 22px;
+            padding: 2.2rem 2rem;
+            overflow: hidden;
+            transition: all 0.38s ease;
+            animation: slideUpFade 0.65s ease both;
+        }
+
+        .feature-card:nth-child(2) { animation-delay: 0.1s; }
+        .feature-card:nth-child(3) { animation-delay: 0.2s; }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Gradient shimmer border */
+        .feature-card::before {
+            content: '';
+            position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.35) 0%,
+                rgba(255,255,255,0.06) 40%,
+                rgba(255,255,255,0)    60%,
+                rgba(255,255,255,0.18) 100%
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+        }
+
+        /* Shimmer sweep on hover */
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -60%;
+            width: 40%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+            transform: skewX(-15deg);
+            pointer-events: none;
+            transition: none;
+        }
+
+        .feature-card:hover::after {
+            animation: shimmerSweep 0.65s ease forwards;
+        }
+
+        @keyframes shimmerSweep {
+            from { left: -60%; }
+            to   { left: 140%; }
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(167,139,250,0.42);
+            box-shadow: 0 22px 55px rgba(102,126,234,0.28),
+                        inset 0 1px 1px rgba(255,255,255,0.12);
+        }
+
+        .feature-icon {
+            font-size: 2.8rem;
+            margin-bottom: 1.2rem;
+            display: block;
+            filter: drop-shadow(0 0 10px rgba(167,139,250,0.55));
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.92);
+            margin-bottom: 0.7rem;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.52);
+            line-height: 1.65;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            margin-top: 1.2rem;
+            padding: 0.3rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(102,126,234,0.18);
+            border: 1px solid rgba(102,126,234,0.35);
+            color: #a78bfa;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .features-header h2 { font-size: 1.8rem; }
+            .features-section   { padding: 3rem 1.2rem 2rem; }
+        }
+
+        /* ── AI DESTINATION FINDER CARD & LAYOUT ── */
+        .hero-cards-container {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .plan-trip-card, .ai-finder-card {
+            flex: 1;
+            min-width: 280px;
+            max-width: 460px;
+            margin: 0;
+            background: rgba(20, 25, 50, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 2.2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .ai-finder-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(167, 139, 250, 0.6);
+        }
+
+        .ai-finder-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(167,139,250,0.8), transparent);
+        }
+
+        .ai-finder-card h3 {
+            color: rgba(255,255,255,0.95);
+            font-size: 1.6rem;
+            margin-bottom: 1.2rem;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(167,139,250,0.5);
+        }
+
+        /* Radio options styling */
+        .trip-type-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .radio-option:hover {
+            color: white;
+        }
+
+        .radio-option input[type="radio"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            outline: none;
+            transition: all 0.25s ease;
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"]:checked {
+            border-color: #a78bfa;
+            background: rgba(167, 139, 250, 0.2);
+        }
+
+        .radio-option input[type="radio"]:checked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: #a78bfa;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(167,139,250,0.8);
+        }
+
+        .prediction-results {
+            background: rgba(13, 17, 23, 0.45);
+            border: 1px dashed rgba(167, 139, 250, 0.3);
+            border-radius: 14px;
+            padding: 1rem;
+            margin-top: 1.2rem;
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .prediction-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: rgba(167, 139, 250, 0.85);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 0.6rem;
+            border-bottom: 1px solid rgba(167, 139, 250, 0.2);
+            padding-bottom: 0.4rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+
+        .prediction-name {
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .prediction-action-btn {
+            background: rgba(167, 139, 250, 0.15);
+            border: 1px solid rgba(167, 139, 250, 0.4);
+            color: #a78bfa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            width: auto;
+            margin: 0;
+        }
+
+        .prediction-action-btn:hover {
+            background: #a78bfa;
+            color: #0d1117;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body>
+<!-- Navigation Bar -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-brand">✈️ Yatrivio</div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link active">Home</a>
+            <a href="#destinations" class="nav-link">Destinations</a>
+            <a href="login.html" class="nav-link">Login</a>
+            <a href="signup.html" class="nav-link signup-btn">Sign Up</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section with Plan Trip -->
+<div class="hero-section">
+    <div class="hero-bg-orb hero-bg-orb-1"></div>
+    <div class="hero-bg-orb hero-bg-orb-2"></div>
+    <div class="hero-bg-orb hero-bg-orb-3"></div>
+    <div class="hero-glass-mesh"></div>
+    <div class="hero-vignette"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">Explore the World Your Way</h1>
+        <p class="hero-subtitle">Plan your perfect trip with real-time costs and personalized recommendations</p>
+        
+        <div class="hero-cards-container">
+            <div class="plan-trip-card">
+                <h3>✈️ Plan Your Trip</h3>
+                <div class="form-group">
+                    <input type="text" id="source" placeholder="📍 From (Source City)" class="form-input" value="Delhi">
+                    <input type="text" id="destination" placeholder="🌍 To (Destination City)" class="form-input">
+                    <input type="number" id="days" min="1" placeholder="📅 Number of Days" class="form-input">
+                </div>
+                <button type="button" onclick="planTrip()" class="btn btn-primary">Discover &amp; Plan ✨</button>
+            </div>
+
+            <div class="ai-finder-card">
+                <h3>🧠 AI Destination Finder</h3>
+                <div style="font-size: 0.82rem; color: rgba(255,255,255,0.5); margin-top: -0.8rem; margin-bottom: 1.2rem; text-align: center;">
+                    Deep Learning (ANN) Recommender
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0.8rem;">
+                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.65); font-weight: 500; margin-bottom: 0.4rem; display: block;">What type of trip?</label>
+                    <div class="trip-type-options">
+                        <label class="radio-option">
+                            <input type="radio" name="trip_type" value="Beach" checked>
+                            <span>🏖️ Beach</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="trip_type" value="Temple">
+                            <span>🛕 Temple</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="trip_type" value="Adventure">
+                            <span>🧗 Adventure</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="trip_type" value="Wildlife">
+                            <span>🐯 Wildlife</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="trip_type" value="Hill Station">
+                            <span>🏔️ Hill Station</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8rem; color: rgba(255,255,255,0.55);">Budget (₹):</label>
+                            <input type="number" id="ann_budget" value="10000" min="2000" class="form-input" style="padding: 0.65rem 0.9rem; font-size: 0.9rem; margin-top: 0.2rem; margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8rem; color: rgba(255,255,255,0.55);">Days:</label>
+                            <input type="number" id="ann_days" value="3" min="1" class="form-input" style="padding: 0.65rem 0.9rem; font-size: 0.9rem; margin-top: 0.2rem; margin-bottom: 0;">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" onclick="predictDestination()" class="btn btn-primary" style="padding: 0.8rem 1.5rem; background: linear-gradient(135deg, #764ba2, #667eea);">Predict Destination 🧠</button>
+
+                <div id="annResults" class="prediction-results">
+                    <div class="prediction-title">🌟 Recommended Destinations</div>
+                    <div id="annResultsList"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ── Why TravelMate Features Section ── -->
+<section class="features-section" aria-label="Why TravelMate">
+    <div class="features-header">
+        <h2>✨ Why TravelMate?</h2>
+        <p>Everything you need to plan the perfect trip — in seconds</p>
+    </div>
+    <div class="features-grid">
+
+        <div class="feature-card">
+            <span class="feature-icon">🗺️</span>
+            <h3>Smart Trip Planning</h3>
+            <p>Enter your source, destination and days — our engine instantly maps your route, calculates real distances and suggests the best travel options.</p>
+            <span class="feature-badge">⚡ Instant Results</span>
+        </div>
+
+        <div class="feature-card">
+            <span class="feature-icon">💰</span>
+            <h3>Accurate Cost Estimates</h3>
+            <p>Get transparent breakdowns for transport (bus, train, flight), accommodation (budget → luxury) and daily expenses — no surprises.</p>
+            <span class="feature-badge">📊 Live Pricing</span>
+        </div>
+
+        <div class="feature-card">
+            <span class="feature-icon">🏨</span>
+            <h3>Hotel Discovery + Booking</h3>
+            <p>See real nearby hotels pinned on an interactive map. Book directly with IRCTC, RedBus or Ixigo in one tap.</p>
+            <span class="feature-badge">🔗 Direct Booking</span>
+        </div>
+
+    </div>
+</section>
+
+<!-- Destinations Section -->
+<div class="destinations-section" id="destinations">
+    <div class="section-header">
+        <h2 class="section-title">🌍 Explore Popular Destinations</h2>
+        <p class="section-subtitle">Handpicked destinations with amazing experiences</p>
+    </div>
+
+    <div class="places-wrapper">
+        <div class="place-details-panel">
+            <h3 id="detail-title">Select a destination</h3>
+            <div id="detail-image-container">
+                <img id="detail-image" src="" alt="Place Image" style="display:none;">
+            </div>
+            <div id="detail-description" class="detail-text">
+                <p>Explore detailed information about each destination including weather, best seasons, attractions, and more.</p>
+            </div>
+            <div id="area-status-panel" class="area-status-panel" style="display:none;">
+                <div class="area-status-header">
+                    <span class="area-status-kicker">Current Status</span>
+                    <span id="area-status-badge" class="area-status-badge">Checking</span>
+                </div>
+                <div id="area-status-title" class="area-status-title">Select a destination</div>
+                <div id="area-status-summary" class="area-status-summary">Warnings and live conditions will appear here.</div>
+                <div id="area-status-metrics" class="area-status-metrics"></div>
+                <div id="area-status-alerts" class="area-status-alerts"></div>
+            </div>
+        </div>
+        
+        <div class="places-section">
+            <div class="category-section">
+                <h3>🏛️ Top Places in India</h3>
+                <div id="india-container" class="places-grid"></div>
+            </div>
+            
+            <div class="category-section">
+                <h3>🌴 Top Places in Odisha</h3>
+                <div id="odisha-container" class="places-grid"></div>
+            </div>
+            
+            <div class="category-section">
+                <h3>🌎 Most Visited Places Globally</h3>
+                <div id="global-container" class="places-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h4>About TravelMate</h4>
+            <p>Your ultimate travel companion for planning amazing trips with accurate cost estimates and personalized recommendations.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="#destinations">Destinations</a></li>
+                <li><a href="login.html">Account</a></li>
+                <li><a href="#">Contact Us</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Follow Us</h4>
+            <div class="social-links">
+                <a href="#" class="social-link">Facebook</a>
+                <a href="#" class="social-link">Twitter</a>
+                <a href="#" class="social-link">Instagram</a>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 TravelMate. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </div>
+</footer>
+
+<script>
+const getApiUrl = (path) => {
+    const isLocalFrontendOnly = 
+        window.location.protocol === 'file:' || 
+        window.location.hostname === '' ||
+        ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && 
+        window.location.port !== '3000' && window.location.port !== '5000');
+    const base = isLocalFrontendOnly ? 'http://127.0.0.1:5000' : '';
+    return `${base}${path}`;
+};
+
+function planTrip() {
+    const destinationInput = document.getElementById("destination");
+    const daysInput = document.getElementById("days");
+
+    const destination = destinationInput.value.trim();
+    const days = parseInt(daysInput.value, 10);
+    const source = document.getElementById("source").value.trim();
+
+    if (source.length < 3) {
+    alert("Please enter a valid source city");
+    return;
+   }
+
+    // Validation
+    if (destination.length < 3) {
+        alert("Please enter a valid destination name");
+        return;
+    }
+
+    if (!isNaN(destination)) {
+        alert("Destination cannot be only numbers");
+        return;
+    }
+
+    if (!/^[a-zA-Z\s]+$/.test(destination)) {
+        alert("Destination should contain only letters");
+        return;
+    }
+
+    if (isNaN(days) || days < 1) {
+        alert("Number of days must be at least 1");
+        return;
+    }
+    if (!source || !destination || !days) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    // ✅ SAVE TRIP FIRST (MOST IMPORTANT)
+    localStorage.setItem("trip", JSON.stringify({
+        source: source,
+        destination: destination,
+        days: days
+    }));
+
+    // Redirect to results page where the API will be called once
+    window.location.href = "results.html";
+}
+
+function predictDestination() {
+    const tripTypeElement = document.querySelector('input[name="trip_type"]:checked');
+    const budgetElement = document.getElementById("ann_budget");
+    const daysElement = document.getElementById("ann_days");
+
+    if (!tripTypeElement || !budgetElement || !daysElement) return;
+
+    const tripType = tripTypeElement.value;
+    const budget = parseFloat(budgetElement.value);
+    const days = parseInt(daysElement.value, 10);
+
+    if (isNaN(budget) || budget <= 0) {
+        alert("Please enter a valid budget");
+        return;
+    }
+    if (isNaN(days) || days <= 0) {
+        alert("Please enter a valid number of days");
+        return;
+    }
+
+    const resultsContainer = document.getElementById("annResults");
+    const resultsList = document.getElementById("annResultsList");
+    
+    resultsContainer.style.display = "block";
+    resultsList.innerHTML = `<div style="text-align:center; padding: 1rem 0; color:rgba(255,255,255,0.5);">🧠 ANN predicting...</div>`;
+
+    fetch(getApiUrl("/api/recommend-destination"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            trip_type: tripType,
+            budget: budget,
+            days: days
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (!res.success) {
+            resultsList.innerHTML = `<div style="color:#ff7f7f; font-size:0.9rem;">Prediction failed: ${res.message}</div>`;
+            return;
+        }
+
+        if (!res.recommendations || res.recommendations.length === 0) {
+            resultsList.innerHTML = `<div style="color:rgba(255,255,255,0.6); font-size:0.9rem;">No recommendations found.</div>`;
+            return;
+        }
+
+        resultsList.innerHTML = res.recommendations.map((dest, idx) => `
+            <div class="prediction-item">
+                <span class="prediction-name">${idx + 1}. ${dest}</span>
+                <button type="button" onclick="selectPredictedDestination('${dest.replace(/'/g, "\\'")}', ${days})" class="prediction-action-btn">Plan This Trip ✈️</button>
+            </div>
+        `).join("");
+    })
+    .catch(err => {
+            console.error(err);
+            resultsList.innerHTML = `<div style="color:#ff7f7f; font-size:0.9rem;">Backend connection error.</div>`;
+        });
+}
+
+function selectPredictedDestination(destination, days) {
+    document.getElementById("destination").value = destination;
+    document.getElementById("days").value = days;
+    document.getElementById("destination").focus();
+    document.getElementById("destination").scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+
+<script src="static/places.js"></script>
+
+</body>
+</html>

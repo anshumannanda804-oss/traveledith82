@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Results - Yatrivio</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .container>h2 {
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.92);
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 0 30px rgba(167, 139, 250, 0.4);
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 2rem 2rem;
+            }
+
+            .results-wrapper {
+                display: grid;
+                grid-template-columns: 320px 1fr;
+                gap: 2.5rem;
+                align-items: start;
+            }
+
+            .trip-details-panel {
+                position: sticky;
+                top: 120px;
+                height: fit-content;
+            }
+
+            .main-content {
+                display: flex;
+                flex-direction: column;
+                gap: 2.5rem;
+            }
+
+            #hotel-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            .results-wrapper {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .trip-details-panel {
+                margin-bottom: 1.5rem;
+            }
+
+            #hotel-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .container>h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .results-wrapper {
+                flex-direction: column;
+            }
+
+            .trip-details-panel {
+                margin-bottom: 1.5rem;
+            }
+
+            #hotel-list {
+                grid-template-columns: 1fr;
+            }
+
+            .accommodation-selector {
+                margin-bottom: 1.5rem;
+            }
+
+            .button-group {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Trip details sticky glass panel */
+        .trip-details-panel {
+            background: rgba(16, 20, 50, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .trip-details-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.6), transparent);
+        }
+
+        .trip-details-panel p {
+            margin: 0.8rem 0;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Hotel Card — dark glass */
+        .hotel-card {
+            background: rgba(16, 20, 50, 0.6) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(102, 126, 234, 0.25) !important;
+            border-radius: 18px !important;
+            padding: 1.5rem !important;
+            transition: all 0.35s ease !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.07) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hotel-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.1) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .hotel-card:hover {
+            transform: translateY(-6px) !important;
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+            border-color: rgba(167, 139, 250, 0.5) !important;
+        }
+
+        .hotel-card h4 {
+            margin-top: 0 !important;
+            margin-bottom: 0.5rem !important;
+            color: rgba(255, 255, 255, 0.92) !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+        }
+
+        .hotel-card p {
+            color: rgba(255, 255, 255, 0.55) !important;
+            margin: 0.5rem 0 !important;
+            font-size: 0.88rem !important;
+        }
+
+        /* Accommodation selector — glass */
+        .accommodation-selector {
+            background: rgba(16, 20, 50, 0.55) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            padding: 1.5rem !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(102, 126, 234, 0.25) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+        }
+
+        .accommodation-selector h3 {
+            color: rgba(255, 255, 255, 0.88) !important;
+            margin-top: 0 !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .accom-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.8rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.75);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .accom-btn:hover {
+            border-color: rgba(167, 139, 250, 0.5);
+            color: #a78bfa;
+        }
+
+        .accom-btn.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+            color: white;
+            border-color: rgba(167, 139, 250, 0.6);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Accommodation cost card */
+        .accommodation-cost-card {
+            background: rgba(16, 20, 50, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 1.5rem;
+            border-radius: 18px;
+            border: 1px solid rgba(102, 126, 234, 0.25);
+            border-left: 3px solid rgba(102, 126, 234, 0.7);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .accommodation-cost-card b {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Map styling */
+        #map {
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        /* Transport booking buttons */
+        .booking-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .booking-buttons a {
+            text-decoration: none;
+        }
+
+        .book-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .book-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 50%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .irctc {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .irctc:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .redbus {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            box-shadow: 0 4px 20px rgba(245, 87, 108, 0.35);
+        }
+
+        .redbus:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.45);
+        }
+
+        .ixigo {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            box-shadow: 0 4px 20px rgba(79, 172, 254, 0.35);
+        }
+
+        .ixigo:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.45);
+        }
+
+        /* Section headings */
+        .main-content h3 {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+        }
+
+        /* ── Weather / Best Season Widget ── */
+        .weather-widget {
+            position: relative;
+            border-radius: 22px;
+            padding: 1.6rem 2rem;
+            margin-bottom: 2rem;
+            background: rgba(16, 20, 52, 0.58);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            overflow: hidden;
+            animation: cardPopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes cardPopIn {
+            from {
+                opacity: 0;
+                transform: translateY(16px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Animated gradient border */
+        .weather-widget::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            background: conic-gradient(from var(--angle, 0deg),
+                    #667eea, #a78bfa, #38bdf8, #764ba2, #667eea);
+            z-index: -1;
+            animation: rotateBorder 4s linear infinite;
+        }
+
+        @property --angle {
+            syntax: '<angle>';
+            inherits: false;
+            initial-value: 0deg;
+        }
+
+        @keyframes rotateBorder {
+            to {
+                --angle: 360deg;
+            }
+        }
+
+        /* Fallback border for browsers that don't support @property */
+        .weather-widget::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: rgba(16, 20, 52, 0.58);
+            z-index: -1;
+        }
+
+        .weather-widget-inner {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .weather-icon-wrap {
+            font-size: 3rem;
+            line-height: 1;
+            flex-shrink: 0;
+            filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.6));
+            animation: iconBob 3s ease-in-out infinite;
+        }
+
+        @keyframes iconBob {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        .weather-text {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .weather-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(167, 139, 250, 0.85);
+            margin-bottom: 0.3rem;
+        }
+
+        .weather-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.94);
+            margin-bottom: 0.4rem;
+        }
+
+        .weather-desc {
+            font-size: 0.88rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.5;
+        }
+
+        .weather-tags {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-top: 0.7rem;
+        }
+
+        .weather-tag {
+            padding: 0.32rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(102, 126, 234, 0.18);
+            border: 1px solid rgba(102, 126, 234, 0.35);
+            color: #a78bfa;
+            white-space: nowrap;
+        }
+
+        /* Global AI Events Bar */
+        .ai-global-bar {
+            background: linear-gradient(90deg, rgba(16, 20, 52, 0.8), rgba(102, 126, 234, 0.15));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-left: 4px solid #a78bfa;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: slideInBar 0.6s ease forwards;
+            display: none; /* hidden initially */
+        }
+
+        .ai-global-bar.danger {
+            border-left: 4px solid #fb7185;
+            background: linear-gradient(90deg, rgba(16, 20, 52, 0.8), rgba(251, 113, 133, 0.15));
+        }
+
+        .ai-global-bar-inner {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .ai-global-icon {
+            font-size: 2rem;
+            animation: pulseIcon 2s infinite;
+        }
+
+        .ai-global-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ai-global-text strong {
+            color: #a78bfa;
+        }
+
+        .ai-global-bar.danger .ai-global-text strong {
+            color: #fb7185;
+        }
+
+        @keyframes slideInBar {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulseIcon {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">✈️ Yatrivio</div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="#" class="nav-link" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h2>📋 Your Trip Plan</h2>
+
+        <!-- ── Best Time to Visit Widget (populated by JS) ── -->
+        <div id="weatherWidget" class="weather-widget" style="display:none;">
+            <div class="weather-widget-inner">
+                <div class="weather-icon-wrap" id="weatherIcon">🌤️</div>
+                <div class="weather-text">
+                    <div class="weather-label">✨ Best Time to Visit</div>
+                    <div class="weather-title" id="weatherTitle">Loading…</div>
+                    <div class="weather-desc" id="weatherDesc"></div>
+                    <div class="weather-tags" id="weatherTags"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AI Travel Safety Widget (populated by JS) ── -->
+        <div id="aiWeatherWidget" class="weather-widget" style="display:none; margin-top: 1rem; margin-bottom: 0;">
+            <div class="weather-widget-inner">
+                <div class="weather-icon-wrap" id="aiWeatherIcon">🤖</div>
+                <div class="weather-text">
+                    <div class="weather-label">🛡️ AI Travel Safety Analysis</div>
+                    <div class="weather-title" id="aiWeatherTitle">Analyzing…</div>
+                    <div class="weather-desc" id="aiWeatherDesc">Our ML model is evaluating real-time data...</div>
+                    <div class="weather-tags" id="aiWeatherTags"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Weather Details & Global Events Bar ── -->
+        <div id="aiGlobalBar" class="ai-global-bar">
+            <div class="ai-global-bar-inner">
+                <div class="ai-global-icon" id="aiGlobalIcon">🌍</div>
+                <div class="ai-global-text" id="aiGlobalText">
+                    Fetching real-time global event analysis...
+                </div>
+            </div>
+        </div>
+
+        <div class="results-wrapper">
+            <!-- LEFT PANEL: Trip Details (Sticky in landscape) -->
+            <div class="trip-details-panel">
+                <div id="tripData"></div>
+                
+                <!-- SENTIMENT ANALYSIS WIDGET -->
+                <div class="sentiment-widget" style="background: rgba(20, 25, 52, 0.6); border: 1px solid rgba(102, 126, 234, 0.25); border-radius: 20px; padding: 1.5rem; margin-top: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    <h4 style="color:#a78bfa; margin-top:0; margin-bottom:0.4rem; font-size:1.1rem; text-shadow:0 0 10px rgba(167,139,250,0.3);">💬 AI Review Sentiment</h4>
+                    <p style="font-size:0.78rem; color:rgba(255,255,255,0.45); margin-bottom:1rem;">Write a destination review to run LSTM Sentiment Analysis.</p>
+                    
+                    <textarea id="reviewText" class="form-input" style="height: 80px; resize: none; font-size: 0.85rem; padding: 0.6rem 0.8rem; margin-bottom: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(102,126,234,0.3); color: white;" placeholder="How is this place?">Beautiful beach and very clean environment</textarea>
+                    
+                    <button type="button" onclick="analyzeReview()" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.88rem; background: linear-gradient(135deg, #667eea, #764ba2); margin-bottom: 0.8rem; width: 100%; border: none; border-radius: 10px; cursor: pointer; color: white;">Analyze Sentiment 🧠</button>
+                    
+                    <div id="sentimentResult" class="prediction-results" style="margin-top: 0.5rem; background: rgba(13, 17, 23, 0.6); border: 1px dashed rgba(167, 139, 250, 0.4); border-radius: 10px; padding: 0.8rem; display: none;">
+                        <div class="prediction-title" style="font-size:0.75rem; letter-spacing:0.5px; margin-bottom:0.4rem; color: #a78bfa; text-transform: uppercase;">LSTM Model Analysis</div>
+                        <div id="sentimentOutput" style="font-size: 0.9rem; font-weight: 600; color: white;"></div>
+                        <div id="sentimentScore" style="font-size: 0.82rem; color: rgba(255,255,255,0.6); margin-top: 0.2rem;"></div>
+                        <div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 999px; margin-top: 0.6rem; overflow: hidden; position: relative;">
+                            <div id="sentimentMeter" style="height: 100%; width: 0%; transition: width 0.5s ease, background-color 0.5s ease; border-radius: 999px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Main Content -->
+            <div class="main-content">
+                <!-- ACCOMMODATION TYPE SELECTOR -->
+                <div class="accommodation-selector">
+                    <h3>🏠 Select Accommodation Type</h3>
+                    <div class="button-group">
+                        <button class="accom-btn" data-type="budget" onclick="selectAccommodation('budget')">💰
+                            Budget</button>
+                        <button class="accom-btn" data-type="medium" onclick="selectAccommodation('medium')">⭐
+                            Medium</button>
+                        <button class="accom-btn" data-type="luxury" onclick="selectAccommodation('luxury')">👑
+                            Luxury</button>
+                    </div>
+                </div>
+
+                <!-- ACCOMMODATION COST DISPLAY -->
+                <div id="accommodationCost" class="accommodation-cost-card" style="display:none;"></div>
+
+                <div id="map" style="height:420px;"></div>
+
+                <h3>🚌 Book Your Transport</h3>
+
+                <div class="booking-buttons" id="bookingButtons">
+                    <a href="https://www.irctc.co.in" target="_blank" style="text-decoration: none;">
+                        <button class="book-btn irctc">🚂 Trains</button>
+                    </a>
+
+                    <a href="https://www.redbus.in" target="_blank" style="text-decoration: none;">
+                        <button class="book-btn redbus">🚌 Buses</button>
+                    </a>
+
+                    <a href="https://www.ixigo.com" target="_blank" style="text-decoration: none;">
+                        <button class="book-btn ixigo">✈️ Flights</button>
+                    </a>
+                </div>
+
+                <!-- KNN RECOMMENDATION INPUT PANEL -->
+                <div class="knn-panel" style="background: rgba(16, 20, 52, 0.58); border: 1px solid rgba(102, 126, 234, 0.25); border-radius: 20px; padding: 1.5rem 2rem; margin-top: 2rem; margin-bottom: 2rem;">
+                    <h4 style="color:#a78bfa; margin-top:0; margin-bottom:0.4rem; font-size:1.15rem; text-shadow:0 0 10px rgba(167,139,250,0.4);">🧠 KNN Hotel Recommender</h4>
+                    <p style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin-bottom:1.2rem;">Adjust the criteria to find the closest matching hotels using the Nearest Neighbors ML model.</p>
+                    
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.2rem;">
+                        <div>
+                            <label style="font-size:0.82rem; color:rgba(255,255,255,0.65); display:block; margin-bottom:0.4rem;">Target Budget (₹):</label>
+                            <input type="number" id="knn_budget" value="4000" min="1000" max="15000" step="500" class="form-input" style="padding:0.6rem 0.9rem; font-size:0.9rem; margin:0; width: 100%; color: white;" oninput="updateKnnRecommendations()">
+                        </div>
+                        <div>
+                            <label style="font-size:0.82rem; color:rgba(255,255,255,0.65); display:block; margin-bottom:0.4rem;">Target Rating (Stars):</label>
+                            <select id="knn_rating" class="form-input" style="padding:0.6rem 0.9rem; font-size:0.9rem; margin:0; width: 100%; color: white;" onchange="updateKnnRecommendations()">
+                                <option value="5.0">5.0 Star Excellent</option>
+                                <option value="4.5">4.5 Star Outstanding</option>
+                                <option value="4.0" selected>4.0+ Star Good</option>
+                                <option value="3.5">3.5+ Star Above Average</option>
+                                <option value="3.0">3.0+ Star Average</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.82rem; color:rgba(255,255,255,0.65); display:block; margin-bottom:0.4rem;">Target Distance (km):</label>
+                            <input type="number" id="knn_distance" value="15" min="1" max="15" step="1" class="form-input" style="padding:0.6rem 0.9rem; font-size:0.9rem; margin:0; width: 100%; color: white;" oninput="updateKnnRecommendations()">
+                        </div>
+                    </div>
+                    <div id="knnResults" aria-live="polite" style="margin-top:1.2rem; color:rgba(255,255,255,0.6); font-size:0.9rem;">Loading hotel matches...</div>
+                </div>
+
+                <h3>🏨 Available Hotels</h3>
+                <div id="hotel-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const getApiUrl = (path) => {
+            const isLocalFrontendOnly = 
+                window.location.protocol === 'file:' || 
+                window.location.hostname === '' ||
+                ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && 
+                window.location.port !== '3000' && window.location.port !== '5000');
+            const base = isLocalFrontendOnly ? 'http://127.0.0.1:5000' : '';
+            return `${base}${path}`;
+        };
+
+        let map;
+        let hotelMarkers = [];
+        let destinationMarker = null;
+        let tripData = null;
+        let selectedAccommodation = 'budget';
+        let hotelRecommendationRequest = 0;
+
+        /* MAP LOAD */
+        map = L.map("map").setView([20.5937, 78.9629], 5);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+            .addTo(map);
+        setTimeout(() => map.invalidateSize(), 0);
+
+        function parseStoredJson(key) {
+            try {
+                return JSON.parse(localStorage.getItem(key));
+            } catch (error) {
+                console.warn(`Ignoring invalid ${key} data`, error);
+                return null;
+            }
+        }
+
+        /* GET TRIP DATA */
+        const trip = parseStoredJson("trip");
+
+        if (!trip || !trip.source || !trip.destination || !trip.days) {
+            alert("Trip data missing. Please plan again.");
+            window.location.href = "index.html";
+            throw new Error("Trip data missing");
+        }
+
+        /* Initial Text */
+        document.getElementById("tripData").innerHTML = `
+<div style="padding: 0.5rem 0;">
+    <p style="margin: 0.5rem 0;"><strong style="color:rgba(255,255,255,0.5);">📍 From:</strong> <span style="color: #a78bfa; font-weight: 600;">${trip.source || 'N/A'}</span></p>
+    <p style="margin: 0.5rem 0;"><strong style="color:rgba(255,255,255,0.5);">🌍 To:</strong> <span style="color: #a78bfa; font-weight: 600;">${trip.destination || 'N/A'}</span></p>
+    <p style="margin: 0.5rem 0;"><strong style="color:rgba(255,255,255,0.5);">📅 Duration:</strong> <span style="color: #a78bfa; font-weight: 600;">${trip.days || 'N/A'} days</span></p>
+    <p style="margin-top: 1rem; color: rgba(255,255,255,0.4); text-align: center; font-size: 0.9rem;">⏳ Loading map &amp; hotels...</p>
+</div>
+`;
+
+        function hasTransportCost(transport, type) {
+            return transport[type] !== undefined && transport[type] !== null;
+        }
+
+        function getAvailableTransportOptions(transport) {
+            const labels = {
+                bus: "Bus",
+                train: "Train",
+                flight: "Flight"
+            };
+
+            return ["bus", "train", "flight"]
+                .filter(type => hasTransportCost(transport, type))
+                .map(type => ({
+                    key: type,
+                    type: labels[type],
+                    total: transport[type]
+                }));
+        }
+
+        function renderBookingButtons(transport) {
+            const bookingButtons = document.getElementById("bookingButtons");
+            const links = {
+                train: {
+                    url: "https://www.irctc.co.in",
+                    className: "irctc",
+                    label: "&#128646; Trains"
+                },
+                bus: {
+                    url: "https://www.redbus.in",
+                    className: "redbus",
+                    label: "&#128652; Buses"
+                },
+                flight: {
+                    url: "https://www.ixigo.com",
+                    className: "ixigo",
+                    label: "&#9992;&#65039; Flights"
+                }
+            };
+
+            const availableButtons = ["train", "bus", "flight"]
+                // Flight search remains available even when the cost estimator
+                // cannot confirm a nearby airport for the selected route.
+                .filter(type => type === "flight" || hasTransportCost(transport, type))
+                .map(type => {
+                    const item = links[type];
+                    return `
+                        <a href="${item.url}" target="_blank" style="text-decoration: none;">
+                            <button class="book-btn ${item.className}">${item.label}</button>
+                        </a>
+                    `;
+                })
+                .join("");
+
+            bookingButtons.innerHTML = availableButtons || `
+                <p style="color: rgba(255,255,255,0.6); margin: 0;">No transport booking option is available for this route.</p>
+            `;
+        }
+
+        function normalizeTripValue(value) {
+            return String(value || "").trim().toLowerCase();
+        }
+
+        function isTripCacheMatch(data) {
+            if (!data) return false;
+            return normalizeTripValue(data.source || trip.source) === normalizeTripValue(trip.source)
+                && normalizeTripValue(data.destination || trip.destination) === normalizeTripValue(trip.destination);
+        }
+
+        function renderTripDetails(data) {
+            tripData = data;
+
+            const transport = tripData.transport || {};
+            const options = getAvailableTransportOptions(transport);
+            renderBookingButtons(transport);
+
+            const bestOption = options.reduce((min, current) =>
+                current.total < min.total ? current : min
+            , options[0]);
+
+            const currency = tripData.accommodation_costs?.currency || "";
+            const budget = bestOption ? bestOption.total : 0;
+            const transportRows = options.length
+                ? options.map(option => `
+    <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">${option.type}:</span> <span style="color:rgba(255,255,255,0.75);">${currency} ${option.total}</span>`).join("<br>")
+                : `<span style="color:rgba(255,255,255,0.6);font-size:0.85rem;">No transport options available for this route.</span>`;
+            const cheapestLine = bestOption
+                ? `<b style="color:#a78bfa;">Cheapest: ${bestOption.type} - ${currency} ${budget}</b><br>`
+                : "";
+
+            document.getElementById("tripData").innerHTML = `
+    <b style="font-size: 17px; color: rgba(255,255,255,0.85);">Trip Summary</b><br>
+    <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">From</span> <span style="color:#a78bfa;font-weight:600;">${trip.source}</span><br>
+    <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">To</span> <span style="color:#a78bfa;font-weight:600;">${trip.destination}</span><br>
+    <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">Days:</span> <span style="color:rgba(255,255,255,0.85);">${trip.days}</span><br>
+    <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">Distance:</span> <span style="color:rgba(255,255,255,0.85);">${tripData.distance_km} km</span><br>
+    <hr style="border:none;border-top:1px solid rgba(102,126,234,0.3);margin:0.8rem 0;">
+    ${cheapestLine}
+    ${transportRows}
+            `;
+
+            selectAccommodation(selectedAccommodation || 'budget');
+
+            const latitude = Number(tripData.latitude);
+            const longitude = Number(tripData.longitude);
+            try {
+                renderWeatherWidget(trip.destination);
+            } catch (error) {
+                console.error("Weather widget error:", error);
+            }
+
+            if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+                try {
+                    fetchAIWeatherAnalysis(latitude, longitude, trip.destination);
+                } catch (error) {
+                    console.error("AI weather analysis error:", error);
+                }
+            }
+
+            try {
+                updateMap(tripData);
+            } catch (error) {
+                console.error("Map render error:", error);
+            }
+
+            try {
+                updateKnnRecommendations();
+            } catch (error) {
+                console.error("Hotel recommendation render error:", error);
+            }
+        }
+
+        /* FETCH BACKEND */
+        const cachedTripData = parseStoredJson("mapData");
+        if (isTripCacheMatch(cachedTripData)) {
+            setTimeout(() => renderTripDetails(cachedTripData), 0);
+        }
+
+        fetch(getApiUrl("/api/trip-details"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                source: trip.source,
+                destination: trip.destination,
+                days: trip.days,
+                numbersOfPerson: trip.numbersOfPerson || 1
+            })
+        })
+            .then(async response => {
+                const res = await response.json().catch(() => ({}));
+                if (!response.ok || !res.success) {
+                    throw new Error(res.message || "Backend error.");
+                }
+                return res.data;
+            })
+            .then(data => {
+                localStorage.setItem("mapData", JSON.stringify(data));
+                renderTripDetails(data);
+            })
+            .catch(err => {
+                console.error(err);
+                if (!tripData) {
+                    const message = "Backend error. Please make sure the server is running, then refresh this page.";
+                    document.getElementById("tripData").innerHTML +=
+                        `<p style="color:#fca5a5; margin-top:1rem; font-size:0.88rem;">${message}</p>`;
+                    document.getElementById("hotel-list").innerHTML =
+                        `<p style="color:rgba(255,255,255,0.62);">${message}</p>`;
+                    document.getElementById("knnResults").textContent = "Hotel recommendations could not be loaded yet.";
+                }
+            });
+
+        /* SELECT ACCOMMODATION TYPE */
+        function selectAccommodation(type) {
+            if (!tripData?.accommodation_costs || !tripData?.total_budgets) {
+                return;
+            }
+
+            selectedAccommodation = type;
+
+            // Update button styles
+            document.querySelectorAll('.accom-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+            const tripDays = Math.max(1, Number(tripData.accommodation_costs.days || tripData.days || trip.days) || 1);
+
+            // Calculate total and per-day cost
+            const accommodations = {
+                budget: {
+                    per_day: Number(tripData.accommodation_costs.budget.per_day) || 0,
+                    label: 'Budget',
+                    color: '#28a745'
+                },
+                medium: {
+                    per_day: Number(tripData.accommodation_costs.medium.per_day) || 0,
+                    label: 'Medium',
+                    color: '#ffc107'
+                },
+                luxury: {
+                    per_day: Number(tripData.accommodation_costs.luxury.per_day) || 0,
+                    label: 'Luxury',
+                    color: '#e74c3c'
+                }
+            };
+
+            const selected = accommodations[type];
+            const total_budget = tripData.total_budgets[type];
+            selected.total_accommodation = selected.per_day * tripDays;
+            const transportTotal = Number(total_budget.transport) || 0;
+            const extraTotal = Number(total_budget.extra) || 0;
+            const totalTripBudget = selected.total_accommodation + transportTotal + extraTotal;
+
+            document.getElementById("accommodationCost").innerHTML = `
+        <div style="padding: 0;">
+            <h4 style="color: ${selected.color}; margin: 0 0 1rem 0; font-size: 1.1rem;">${selected.label} Accommodation</h4>
+            <div style="display: grid; gap: 0.8rem; font-size: 0.92rem; line-height: 1.6;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(102,126,234,0.2); padding-bottom: 0.8rem;">
+                    <span style="color:rgba(255,255,255,0.55);">Per Day Cost:</span>
+                    <span style="font-weight: 600; color: rgba(255,255,255,0.88);">${tripData.accommodation_costs.currency} ${selected.per_day}/day</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(102,126,234,0.2); padding-bottom: 0.8rem;">
+                    <span style="color:rgba(255,255,255,0.55);">Accommodation (${tripDays} days):</span>
+                    <span style="font-weight: 600; color: rgba(255,255,255,0.88);">${tripData.accommodation_costs.currency} ${selected.total_accommodation}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(102,126,234,0.2); padding-bottom: 0.8rem;">
+                    <span style="color:rgba(255,255,255,0.55);">Transportation:</span>
+                    <span style="font-weight: 600; color: rgba(255,255,255,0.88);">${tripData.accommodation_costs.currency} ${transportTotal}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(102,126,234,0.2); padding-bottom: 0.8rem;">
+                    <span style="color:rgba(255,255,255,0.55);">Extra Cost:</span>
+                    <span style="font-weight: 600; color: rgba(255,255,255,0.88);">${tripData.accommodation_costs.currency} ${extraTotal}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; background: rgba(102,126,234,0.12); padding: 1rem; border-radius: 12px; margin-top: 0.5rem; border: 1px solid rgba(102,126,234,0.25);">
+                    <span style="font-weight: 600; color: rgba(255,255,255,0.75);">Total Trip Budget:</span>
+                    <span style="font-weight: 700; font-size: 1.1rem; color: ${selected.color};">${tripData.accommodation_costs.currency} ${totalTripBudget}</span>
+                </div>
+            </div>
+        </div>
+    `;
+            document.getElementById("accommodationCost").style.display = 'block';
+        }
+
+        /* UPDATE MAP */
+        function getTomTomHotels(hotels) {
+            return Array.isArray(hotels)
+                ? hotels.filter(hotel => hotel && (hotel.name || hotel.hotel_name))
+                : [];
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, char => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "\"": "&quot;",
+                "'": "&#39;"
+            }[char]));
+        }
+
+        function updateMap(data) {
+            try {
+                console.log("Trip Data:", data);
+
+                const latitude = Number(data?.latitude);
+                const longitude = Number(data?.longitude);
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                    console.error("Invalid destination coordinates");
+                    return;
+                }
+
+                map.setView([latitude, longitude], 13);
+                setTimeout(() => map.invalidateSize(), 0);
+
+                if (destinationMarker) {
+                    map.removeLayer(destinationMarker);
+                }
+                destinationMarker = L.marker([latitude, longitude])
+                    .addTo(map)
+                    .bindPopup(escapeHtml(data.destination || trip.destination || "Destination"));
+
+                hotelMarkers.forEach(marker => map.removeLayer(marker));
+                hotelMarkers = [];
+
+                const hotelList = document.getElementById("hotel-list");
+                hotelList.innerHTML = "";
+
+                const tomTomHotels = getTomTomHotels(data.hotels);
+                console.log("Hotels received:", tomTomHotels.length);
+
+                if (tomTomHotels.length === 0) {
+                    hotelList.innerHTML = `<p style="color:rgba(255,255,255,0.62);">${escapeHtml(data.hotel_search_error || "No hotels found.")}</p>`;
+                    return;
+                }
+
+                tomTomHotels.forEach(hotel => {
+                    try {
+                        const hotelName = hotel.name || hotel.hotel_name || "Unknown Hotel";
+                        const lat = Number(hotel.lat);
+                        const lon = Number(hotel.lon);
+
+                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                            console.warn("Skipping hotel", hotelName);
+                            return;
+                        }
+
+                        const marker = L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(escapeHtml(hotelName));
+
+                        hotelMarkers.push(marker);
+
+                        const price = Number(hotel.price);
+                        const hasPrice = Number.isFinite(price) && price > 0;
+                        const symbol = hotel.symbol || "";
+                        const priceLabel = hasPrice ? `${symbol}${price.toLocaleString("en-IN")}` : "Price unavailable";
+
+                        hotelList.insertAdjacentHTML("beforeend", `
+                            <div class="hotel-card">
+                                <h4>${escapeHtml(hotelName)}</h4>
+                                <p>${escapeHtml(priceLabel)}</p>
+                                <button
+                                    type="button"
+                                    onclick="bookHotel(this.dataset.hotelName, Number(this.dataset.hotelPrice))"
+                                    data-hotel-name="${escapeHtml(hotelName)}"
+                                    data-hotel-price="${hasPrice ? price : ''}"
+                                    class="btn btn-primary">
+                                    Book Now
+                                </button>
+                            </div>
+                        `);
+                    } catch (err) {
+                        console.error("Hotel Error:", err, hotel);
+                    }
+                });
+
+                console.log("Hotels rendered successfully");
+            } catch (err) {
+                console.error("Map Error:", err);
+            }
+        }
+
+        function renderKnnResults(recommendations, emptyMessage = "No matching hotels found for these criteria.") {
+            const results = document.getElementById("knnResults");
+
+            if (!Array.isArray(recommendations) || recommendations.length === 0) {
+                results.textContent = emptyMessage;
+                return;
+            }
+
+            results.innerHTML = recommendations.map(hotel => {
+                const name = hotel.name || hotel.hotel_name || "Hotel";
+                const price = Number(hotel.price);
+                const hotelRating = Number(hotel.rating);
+                const hotelDistance = Number(hotel.distance);
+                const details = [
+                    Number.isFinite(price) ? `${hotel.symbol || "Rs "}${price.toLocaleString("en-IN")}/night` : null,
+                    Number.isFinite(hotelRating) ? `Rating ${hotelRating.toFixed(1)}` : null,
+                    Number.isFinite(hotelDistance) ? `${hotelDistance.toFixed(1)} km away` : null
+                ].filter(Boolean).join(" | ");
+
+                return `
+                    <div class="hotel-card" style="margin:0.7rem 0 0; padding:1rem;">
+                        <strong style="color:rgba(255,255,255,0.92);">${escapeHtml(name)}</strong>
+                        <div style="margin:0.35rem 0 0.8rem; color:rgba(255,255,255,0.62); font-size:0.82rem;">${escapeHtml(details)}</div>
+                        <button type="button" onclick="bookHotel(this.dataset.hotelName, Number(this.dataset.hotelPrice))" data-hotel-name="${escapeHtml(name)}" data-hotel-price="${Number.isFinite(price) ? price : ''}" class="btn btn-primary" style="width:auto; margin:0; padding:0.5rem 0.8rem; font-size:0.8rem;">Book this hotel</button>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function updateKnnRecommendations() {
+            const results = document.getElementById("knnResults");
+            const budget = Number(document.getElementById("knn_budget").value);
+            const rating = Number(document.getElementById("knn_rating").value);
+            const distance = Number(document.getElementById("knn_distance").value);
+
+            if (!tripData || !Array.isArray(tripData.hotels)) {
+                results.textContent = "Hotel recommendations will appear after the trip details load.";
+                return;
+            }
+
+            const tomTomHotels = getTomTomHotels(tripData.hotels);
+            if (tomTomHotels.length === 0) {
+                results.textContent = tripData.hotel_search_error || "No hotels were returned by the TomTom API within 15 km of this destination.";
+                return;
+            }
+
+            if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(rating) || rating <= 0 || !Number.isFinite(distance) || distance <= 0) {
+                results.textContent = "Enter valid budget, rating, and distance values.";
+                return;
+            }
+
+            const requestId = ++hotelRecommendationRequest;
+            renderKnnResults(tripData.recommended_hotels, "Finding the closest hotel matches...");
+
+            fetch(getApiUrl("/api/recommend-hotels"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    hotels: tomTomHotels,
+                    budget,
+                    rating,
+                    distance
+                })
+            })
+                .then(async response => {
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || "Unable to calculate hotel recommendations.");
+                    }
+                    return data.recommendations || [];
+                })
+                .then(recommendations => {
+                    if (requestId !== hotelRecommendationRequest) return;
+                    renderKnnResults(recommendations);
+                    return;
+
+                    if (!recommendations.length) {
+                        results.textContent = "No matching hotels found for these criteria.";
+                        return;
+                    }
+
+                    results.innerHTML = recommendations.map(hotel => {
+                        const name = hotel.name || hotel.hotel_name || "Hotel";
+                        const price = Number(hotel.price);
+                        const hotelRating = Number(hotel.rating);
+                        const hotelDistance = Number(hotel.distance);
+                        const details = [
+                            Number.isFinite(price) ? `${hotel.symbol || '₹'}${price.toLocaleString("en-IN")}/night` : null,
+                            Number.isFinite(hotelRating) ? `★ ${hotelRating.toFixed(1)}` : null,
+                            Number.isFinite(hotelDistance) ? `${hotelDistance.toFixed(1)} km away` : null
+                        ].filter(Boolean).join(" &middot; ");
+
+                        return `
+                            <div class="hotel-card" style="margin:0.7rem 0 0; padding:1rem;">
+                                <strong style="color:rgba(255,255,255,0.92);">${escapeHtml(name)}</strong>
+                                <div style="margin:0.35rem 0 0.8rem; color:rgba(255,255,255,0.62); font-size:0.82rem;">${details}</div>
+                                <button type="button" onclick="bookHotel(this.dataset.hotelName)" data-hotel-name="${escapeHtml(name)}" class="btn btn-primary" style="width:auto; margin:0; padding:0.5rem 0.8rem; font-size:0.8rem;">Book this hotel</button>
+                            </div>
+                        `;
+                    }).join("");
+                })
+                .catch(error => {
+                    if (requestId !== hotelRecommendationRequest) return;
+                    console.error("KNN recommendation error:", error);
+                    renderKnnResults(tripData.recommended_hotels, "Hotel recommendations could not be loaded. Please try again.");
+                });
+        }
+
+        /* LSTM REVIEW SENTIMENT */
+        async function analyzeReview() {
+            const reviewInput = document.getElementById("reviewText");
+            const result = document.getElementById("sentimentResult");
+            const output = document.getElementById("sentimentOutput");
+            const score = document.getElementById("sentimentScore");
+            const meter = document.getElementById("sentimentMeter");
+            const button = document.querySelector('button[onclick="analyzeReview()"]');
+            const review = reviewInput.value.trim();
+
+            result.style.display = "block";
+            meter.style.width = "0%";
+
+            if (!review) {
+                output.textContent = "Please write a review first.";
+                score.textContent = "";
+                meter.style.backgroundColor = "#ef4444";
+                return;
+            }
+
+            const originalButtonLabel = button.innerHTML;
+            button.disabled = true;
+            button.textContent = "Analyzing...";
+            output.textContent = "Running LSTM sentiment analysis...";
+            score.textContent = "";
+
+            try {
+                const response = await fetch(getApiUrl("/api/analyze-sentiment"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ review })
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Unable to analyze this review.");
+                }
+
+                const confidence = Math.max(0, Math.min(100, Number(data.score) || 0));
+                const isPositive = data.sentiment === "Positive Sentiment";
+
+                output.textContent = data.sentiment;
+                score.textContent = `Confidence: ${confidence}%`;
+                meter.style.width = `${confidence}%`;
+                meter.style.backgroundColor = isPositive ? "#22c55e" : "#ef4444";
+            } catch (error) {
+                console.error("Sentiment analysis error:", error);
+                output.textContent = "Sentiment analysis could not be loaded.";
+                score.textContent = "Please make sure the backend is running and try again.";
+                meter.style.backgroundColor = "#ef4444";
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalButtonLabel;
+            }
+        }
+
+        /* BOOK HOTEL */
+        function bookHotel(hotelName, hotelPrice) {
+            const selectedHotel = (tripData?.hotels || []).find(hotel =>
+                (hotel.name || hotel.hotel_name) === hotelName
+            );
+            const nightlyRate = Number.isFinite(Number(hotelPrice)) && Number(hotelPrice) > 0
+                ? Number(hotelPrice)
+                : Number(selectedHotel?.price);
+
+            if (!Number.isFinite(nightlyRate) || nightlyRate <= 0) {
+                alert("This hotel's nightly rate is unavailable. Please select a hotel with a listed rate.");
+                return;
+            }
+
+            localStorage.setItem("selectedHotel", hotelName);
+
+            localStorage.setItem("selectedHotelDetails",JSON.stringify({
+        name: selectedHotel.name || selectedHotel.hotel_name,
+        price: selectedHotel.price,
+        price_inr: selectedHotel.price_inr,
+        currency: selectedHotel.currency,
+        symbol: selectedHotel.symbol,
+        rating: selectedHotel.rating,
+        distance: selectedHotel.distance
+    }));
+            
+            window.location.href = "hotel_booking.html";
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        /* ─────────────────────────────────────────────
+           WEATHER / BEST SEASON WIDGET
+           Purely client-side — no API key needed.
+        ───────────────────────────────────────────── */
+        const weatherDB = [
+            // Indian cities & regions
+            { keys: ["goa"], icon: "🏖️", title: "Oct – Mar is paradise", desc: "Clear skies, warm beaches & vibrant nightlife. Avoid Jun–Sep monsoon season.", tags: ["☀️ Sunny Winters", "🌊 Beach Season", "🎉 Carnival (Feb)"] },
+            {
+                keys: ["manali", "himachal", "shimla", "kullu", "spiti"],
+                icon: "🏔️", title: "Mar – Jun for greenery, Dec – Feb for snow",
+                desc: "Summer brings lush valleys; winter blankets everything in pristine snow — perfect for skiing.", tags: ["❄️ Snow Dec–Feb", "🌸 Bloom Mar–May", "🎿 Skiing"]
+            },
+            {
+                keys: ["rajasthan", "jaipur", "jodhpur", "udaipur", "jaisalmer"],
+                icon: "🏜️", title: "Oct – Mar is ideal", desc: "Comfortable temperatures for exploring forts & deserts. Summers can exceed 45°C — avoid May–Jul.", tags: ["🏰 Heritage Forts", "🐪 Camel Safari", "🎆 Diwali (Oct/Nov)"]
+            },
+            {
+                keys: ["kerala", "munnar", "alleppey", "kochi", "wayanad"],
+                icon: "🌴", title: "Sep – Mar is glorious", desc: "Post-monsoon Kerala is lush and cool. Houseboat season peaks in Dec–Jan.", tags: ["🛶 Backwaters", "🌿 Ayurveda", "🐘 Elephant Festival (Aug)"]
+            },
+            {
+                keys: ["varanasi", "agra", "delhi", "lucknow", "prayagraj"],
+                icon: "🕌", title: "Oct – Mar is comfortable", desc: "Cool and pleasant. Summers are scorching; monsoon (Jul–Sep) can disrupt travel.", tags: ["🕯️ Diwali Celebrations", "🏛️ Heritage Sites", "🌄 Sunrise at Ghats"]
+            },
+            {
+                keys: ["andaman", "lakshadweep", "port blair"],
+                icon: "🐠", title: "Nov – May for diving", desc: "Crystal clear waters and pristine corals. Avoid Jul–Sep — heavy rains & rough seas.", tags: ["🤿 Scuba Diving", "🏝️ Pristine Beaches", "🐢 Sea Turtles"]
+            },
+            {
+                keys: ["darjeeling", "sikkim", "gangtok", "arunachal"],
+                icon: "☕", title: "Mar – May & Sep – Nov", desc: "Spring rhododendrons and autumn clarity give the best Himalayan views.", tags: ["🍵 Tea Gardens", "🏔️ Kanchenjunga View", "⛅ Clear Skies"]
+            },
+            { keys: ["mumbai", "pune"], icon: "🌆", title: "Nov – Feb is pleasant", desc: "Coastal winters are cool and dry. Avoid Jun–Sep monsoon floods.", tags: ["🎭 Bollywood", "🍴 Street Food", "🎊 Ganesh Chaturthi (Aug/Sep)"] },
+            {
+                keys: ["ooty", "kodaikanal", "coorg"],
+                icon: "🌫️", title: "Apr – Jun for cool escape", desc: "South Indian hill stations shine in summer — great escape from the heat below.", tags: ["🏞️ Nilgiri Hills", "☁️ Misty Mornings", "🌸 Rose Garden"]
+            },
+            {
+                keys: ["odisha", "bhubaneswar", "puri", "konark", "cuttack"],
+                icon: "🏛️", title: "Oct – Feb is perfect", desc: "Mild weather for temples, beaches & tribal culture. Monsoon Jul–Sep is beautiful but humid.", tags: ["🛕 Sun Temple", "🌊 Puri Beach", "🎉 Rath Yatra (Jul)"]
+            },
+            // Global destinations
+            { keys: ["paris", "france"], icon: "🗼", title: "Apr – Jun & Sep – Oct", desc: "Spring blooms and autumn gold flank the peak summer crowd. Avoid Aug for fewer tourists.", tags: ["🌸 Spring Blooms", "🍷 Wine & Cuisine", "🖼️ Museum Season"] },
+            {
+                keys: ["dubai", "uae", "abu dhabi"],
+                icon: "🏙️", title: "Nov – Apr is comfortable", desc: "Temperatures drop to a heavenly 20–30°C. Jun–Sep can exceed 45°C.", tags: ["🛍️ Shopping Festival (Jan)", "🏖️ Beach Season", "✨ NYE Fireworks"]
+            },
+            { keys: ["bali", "indonesia"], icon: "🌺", title: "Apr – Oct is dry season", desc: "Clear skies and calm surf ideal for exploring temples & beaches.", tags: ["🏄 Surfing", "🌋 Volcano Hikes", "🎭 Kecak Dance"] },
+            { keys: ["maldives"], icon: "🌊", title: "Nov – Apr is dry & bright", desc: "Calm turquoise lagoons and sunny skies. May–Oct brings more rain but discounted rates.", tags: ["🤿 Snorkelling", "🦈 Whale Sharks", "🌅 Overwater Villas"] },
+            {
+                keys: ["thailand", "bangkok", "phuket", "chiang mai"],
+                icon: "🛕", title: "Nov – Apr is dry season", desc: "Cooler north, sunny beaches and vibrant festivals. Avoid May–Oct monsoon.", tags: ["🎆 Loy Krathong (Nov)", "🏖️ Islands", "🍜 Street Food"]
+            },
+            {
+                keys: ["switzerland", "zurich", "interlaken"],
+                icon: "🏔️", title: "Dec–Mar for snow, Jun–Sep for Alps", desc: "World class skiing in winter; summer hiking with alpine meadows in bloom.", tags: ["⛷️ Skiing", "🌸 Alpine Meadows", "🚂 Scenic Trains"]
+            },
+            {
+                keys: ["london", "england", "uk"],
+                icon: "☂️", title: "May – Sep is the best bet", desc: "Longest days, warmest temperatures and outdoor festivals. Pack a light jacket for sudden showers.", tags: ["⛅ Summer Festivals", "🎭 West End", "🌿 Parks in Bloom"]
+            },
+            {
+                keys: ["new york", "nyc", "usa"],
+                icon: "🗽", title: "Apr – Jun & Sep – Nov", desc: "Spring cherry blossoms and fall foliage are iconic. Summers are hot; winters bitterly cold.", tags: ["🍂 Fall Foliage", "🌸 Cherry Blossoms", "🎉 New Year's Eve"]
+            },
+            {
+                keys: ["japan", "tokyo", "kyoto", "osaka"],
+                icon: "🌸", title: "Mar – May & Sep – Nov", desc: "Cherry blossom spring and fiery autumn foliage are unmissable — book far in advance.", tags: ["🌸 Sakura (Mar–Apr)", "🍁 Koyo (Oct–Nov)", "🎆 Fireworks (Summer)"]
+            },
+            {
+                keys: ["santorini", "greece", "athens", "mykonos"],
+                icon: "⛵", title: "Apr – Jun & Sep – Oct", desc: "Shoulder seasons offer warm weather without the July/August peak crowds and prices.", tags: ["🌅 Caldera Sunsets", "🏺 Ancient Ruins", "🐟 Seafood Season"]
+            },
+        ];
+
+        function renderWeatherWidget(destination) {
+            const dest = destination.toLowerCase();
+            let match = null;
+
+            // Score-based match to find best fit
+            let bestScore = 0;
+            for (const entry of weatherDB) {
+                for (const keyword of entry.keys) {
+                    if (dest.includes(keyword) || keyword.includes(dest.split(' ')[0])) {
+                        // Longer keyword match = higher confidence
+                        const score = keyword.length;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            match = entry;
+                        }
+                    }
+                }
+            }
+
+            // Fallback for unknown destinations
+            if (!match) {
+                match = {
+                    icon: "🗺️",
+                    title: "Check locally for best season",
+                    desc: `Conditions vary by region. Generally, avoid monsoon months and extreme summer heat for the most comfortable travel to ${destination}.`,
+                    tags: ["📅 Research Locally", "🌡️ Check Weather", "🎒 Pack Smart"]
+                };
+            }
+
+            document.getElementById("weatherIcon").textContent = match.icon;
+            document.getElementById("weatherTitle").textContent = match.title;
+            document.getElementById("weatherDesc").textContent = match.desc;
+            document.getElementById("weatherTags").innerHTML = match.tags
+                .map(t => `<span class="weather-tag">${t}</span>`)
+                .join('');
+
+            const widget = document.getElementById("weatherWidget");
+            widget.style.display = 'block';
+            // Restart animation
+            widget.classList.remove('_anim');
+            void widget.offsetWidth;
+            widget.classList.add('_anim');
+        }
+
+        function fetchAIWeatherAnalysis(lat, lon, destination) {
+            if (!lat || !lon) return;
+
+            fetch(getApiUrl("/api/ai-weather-analysis"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat: lat, lon: lon, destination: destination })
+            })
+                .then(res => res.json())
+                .then(res => {
+                    if (!res.success) throw new Error(res.message);
+
+                    const data = res.data;
+                    const temp = Math.round(data.temperature);
+                    const wind = Math.round(data.windspeed);
+                    const precip = data.precipitation;
+                    const isSafe = data.is_safe;
+                    const warnings = data.warnings || [];
+                    const suggestion = data.ai_suggestion;
+                    const indiaAlerts = data.india_alerts || data.global_events || [];
+
+                    document.getElementById("aiWeatherIcon").innerHTML = isSafe ? "✅" : "⚠️";
+
+                    let titleColor = isSafe ? "#a78bfa" : "#fb7185";
+                    document.getElementById("aiWeatherTitle").innerHTML = `<span style="color: ${titleColor};">${isSafe ? "Safe to Travel" : "Travel Warning"}</span>`;
+
+                    let descHtml = `<strong style="color: rgba(255,255,255,0.9);">${suggestion}</strong><br>`;
+                    if (warnings.length > 0) {
+                        descHtml += `<span style="color: #fb7185; font-size: 0.85em;">Alerts: ${warnings.join(' | ')}</span>`;
+                    }
+
+                    document.getElementById("aiWeatherDesc").innerHTML = descHtml;
+                    document.getElementById("aiWeatherTags").innerHTML = `
+            <span class="weather-tag">🌡️ ${temp}°C</span>
+            <span class="weather-tag">💨 ${wind} km/h</span>
+            <span class="weather-tag">💧 ${precip}mm Rain</span>
+        `;
+
+                    const widget = document.getElementById("aiWeatherWidget");
+                    // Give a red border effect if unsafe
+                    if (!isSafe) {
+                        widget.style.border = "1px solid rgba(251, 113, 133, 0.4)";
+                        widget.style.boxShadow = "0 8px 32px rgba(251, 113, 133, 0.2)";
+                    } else {
+                        widget.style.border = "";
+                        widget.style.boxShadow = "";
+                    }
+
+                    widget.style.display = 'block';
+                    widget.classList.remove('_anim');
+                    void widget.offsetWidth;
+                    widget.classList.add('_anim');
+
+                    // Official India Alerts Bar Logic
+                    const globalBar = document.getElementById("aiGlobalBar");
+                    const globalText = document.getElementById("aiGlobalText");
+                    const globalIcon = document.getElementById("aiGlobalIcon");
+
+                    if (indiaAlerts.length > 0) {
+                        globalBar.classList.add("danger");
+                        globalIcon.innerHTML = "🚨";
+                        
+                        let eventHtml = `<strong>India Alert:</strong> Official SACHET/NDMA warnings are active near your destination.<br>`;
+                        indiaAlerts.forEach(ev => {
+                            const distanceText = ev.distance !== null && ev.distance !== undefined
+                                ? ` approx. ${ev.distance}km away`
+                                : "";
+                            const areaText = ev.area ? ` Area: ${ev.area}.` : "";
+                            eventHtml += `• ${ev.name}${distanceText} (Severity: ${ev.alert_level || ev.severity || 'Unknown'}).${areaText}<br>`;
+                        });
+                        globalText.innerHTML = eventHtml;
+                    } else {
+                        globalBar.classList.remove("danger");
+                        globalIcon.innerHTML = "🌍";
+                        globalText.innerHTML = `<strong>India Alerts Clear:</strong> SACHET/NDMA CAP data has no active official alert matched to this Indian destination right now.`;
+                    }
+                    globalBar.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error("Error fetching AI weather analysis:", err);
+                    document.getElementById("aiWeatherIcon").textContent = "❌";
+                    document.getElementById("aiWeatherTitle").textContent = "Analysis Failed";
+                    document.getElementById("aiWeatherDesc").innerHTML = `<span style='color: #fb7185;'>Could not reach our AI backend model.</span>`;
+                    const widget = document.getElementById("aiWeatherWidget");
+                    widget.style.display = 'block';
+                });
+        }
+
+    </script>
+
+    <footer class="footer" style="margin-top: 4rem;">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Yatrivio</h4>
+                <p>Your ultimate travel companion for planning amazing trips with accurate cost estimates.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html">Plan Trip</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <div class="social-links">
+                    <a href="#" class="social-link">FB</a>
+                    <a href="#" class="social-link">TW</a>
+                    <a href="#" class="social-link">IG</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Yatrivio. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+
+</html>

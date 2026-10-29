@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plan Trip</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+    <div class="logout-container">
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+    <div class="container">
+        <h2>Plan Your Trip</h2>
+
+        <!-- SOURCE CITY -->
+        <input type="text" id="source" placeholder="Enter source city">
+
+        <!-- DESTINATION -->
+        <input type="text" id="destination" placeholder="Enter destination city">
+
+        <!-- DAYS -->
+        <input type="number" id="days" min="1" placeholder="Number of days">
+        <!--NO OF TRAVELLERS-->
+        <input type="number" id="numbersOfPerson" min="1" placeholder="Number of travellers">
+
+        <button type="button" onclick="planTrip()">Plan Trip</button>
+    </div>
+
+<script>
+const getApiUrl = (path) => {
+    const isLocalFrontendOnly = 
+        window.location.protocol === 'file:' || 
+        window.location.hostname === '' ||
+        ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && 
+        window.location.port !== '3000' && window.location.port !== '5000');
+    const base = isLocalFrontendOnly ? 'http://127.0.0.1:5000' : '';
+    return `${base}${path}`;
+};
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+function planTrip() {
+    const source = document.getElementById("source").value.trim();
+    const destination = document.getElementById("destination").value.trim();
+    const days = Number(document.getElementById("days").value);
+    const numbersOfPerson = Number(document.getElementById("numbersOfPerson").value);
+    if (!source || !destination || !days || !numbersOfPerson) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    // ✅ SAVE TRIP FIRST (MOST IMPORTANT)
+    localStorage.setItem("trip", JSON.stringify({
+        source: source,
+        destination: destination,
+        days: days,
+        numbersOfPerson: numbersOfPerson
+    }));
+
+    // ✅ SEND SOURCE, DESTINATION & DAYS
+    fetch(getApiUrl("/api/trip-details"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            source: source,
+            destination: destination,
+            days: days,
+            numbersOfPerson: numbersOfPerson
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (!res.success) {
+            alert(res.message);
+            return;
+        }
+
+        localStorage.setItem("mapData", JSON.stringify(res.data));
+        window.location.href = "results.html";
+    })
+    .catch(() => alert("Backend not reachable"));
+}
+</script>
+
+
+
+
+
+</body>
+</html>
